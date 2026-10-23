@@ -1,624 +1,838 @@
 /**
- * Unified API Client with Automatic Cloud Fallback for Autonomous Vehicles & Intelligent Transportation
- * Supports both local/production FastAPI backend and seamless standalone client-side execution on Vercel.
+ * Unified API client and embedded AI Expert System engine for Computer Troubleshooting Assistant.
+ * Connects to FastAPI backend when available, and provides complete embedded inference fallback on Vercel.
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-// Internal client-side simulation state
-let clientSpeed = 62.0;
-let clientTargetSpeed = 65.0;
-let clientMode = 'Autonomous';
-let clientObstacleDist = 48.0;
-let clientObstacleType = 'Car';
-let clientRelSpeed = 4.0;
-let clientRoadCondition = 'dry';
-let clientAebActive = false;
-let clientEvents = [
-  { timestamp: Math.floor(Date.now() / 1000) - 40, type: 'SYS_INIT', severity: 'info', message: 'Autonomous Perception Pipeline Initialized.' },
-  { timestamp: Math.floor(Date.now() / 1000) - 20, type: 'LANE_KEEP', severity: 'info', message: 'Lane Centering locked on Highway Corridor A4.' },
-  { timestamp: Math.floor(Date.now() / 1000) - 5, type: 'ADAPTIVE_CRUISE', severity: 'info', message: 'Target cruising speed set to 65.0 km/h.' }
-];
-
-const ROAD_FRICTION = {
-  dry: { mu: 0.82, label: 'Dry Asphalt (Optimal Traction)' },
-  wet: { mu: 0.52, label: 'Wet Road (Reduced Friction)' },
-  snowy: { mu: 0.28, label: 'Snow Covered (Low Grip)' },
-  icy: { mu: 0.14, label: 'Black Ice / Freezing (Extreme Hazard)' }
+// Embedded Knowledge Base for Vercel Cloud Serverless Execution
+const EMBEDDED_CATEGORIES = {
+  slow_computer: "Slow computer or lagging system",
+  network_wifi: "Wi-Fi or internet not working",
+  audio_sound: "No sound or audio problems",
+  app_freeze: "Applications freezing or not responding",
+  boot_black_screen: "Computer not starting or black screen",
+  printer_issue: "Printer not detected or spooler errors",
+  resource_usage: "High CPU, RAM or disk usage",
+  software_driver: "Common software and driver problems"
 };
 
-function computeKinematics(vSpeed, dist, relSpeed, roadCond, reactionTime = 0.35) {
-  const mu = ROAD_FRICTION[roadCond]?.mu || 0.82;
-  const v_ego_ms = vSpeed / 3.6;
-  const v_rel_ms = relSpeed / 3.6;
+const EMBEDDED_RULES = [
+  {
+    id: "R_SLOW_01",
+    category: "slow_computer",
+    title: "Startup & Background Process Congestion",
+    required_symptoms: ["system_lag"],
+    optional_symptoms: ["boot_slow", "too_many_startup_apps", "ram_full"],
+    cause: "Excessive background startup programs and unoptimized resident services consuming memory and CPU cycles.",
+    reasoning: "Symptom signatures indicate general system slowdown and long boot delays without storage I/O hardware failure.",
+    confidence_base: 86,
+    follow_up_questions: [
+      {
+        id: "q_startup_count",
+        question: "Did this slowdown happen gradually over time as more software was installed?",
+        options: [
+          { label: "Yes, gradually over time / after installing apps", delta: 10 },
+          { label: "No, it started suddenly out of nowhere", delta: -15 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Disable Non-Essential Startup Programs",
+        description: "Press Ctrl + Shift + Esc to open Task Manager. Switch to 'Startup apps'. Right-click non-essential background apps (Spotify, Discord, OneDrive, game launchers) and select 'Disable'.",
+        command: "taskmgr"
+      },
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Clean Windows Temporary Files",
+        description: "Press Win + R, type '%temp%' and press Enter. Select all files (Ctrl + A) and press Delete. Skip any files currently locked by Windows.",
+        command: "%temp%"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Run Disk Cleanup & Storage Sense",
+        description: "Search 'Disk Cleanup' in the Start menu, select drive C:, check 'Temporary files' and 'Recycle Bin', then click OK to reclaim storage.",
+        command: "cleanmgr"
+      }
+    ],
+    alternatives: ["If slowdown continues, investigate 100% disk usage (R_SLOW_02) or CPU thermal throttling (R_SLOW_03)."],
+    escalation: "If system takes >5 minutes to boot on an SSD after disabling startup apps, hardware drive health check is recommended.",
+    safety_warning: "Never delete files from C:\\Windows\\System32. Only delete temporary cache files in %temp%."
+  },
+  {
+    id: "R_SLOW_02",
+    category: "slow_computer",
+    title: "Storage Drive I/O Thrashing (100% Disk Usage)",
+    required_symptoms: ["disk_100_percent"],
+    optional_symptoms: ["system_lag", "boot_slow"],
+    cause: "Windows Search Indexing service (SysMain / Superfetch) loop or corrupt disk file tables locking disk active time to 100%.",
+    reasoning: "Storage drive remains pinned at 100% active time with near zero data transfer rate, starving system threads.",
+    confidence_base: 92,
+    follow_up_questions: [
+      {
+        id: "q_disk_type",
+        question: "Are you running an older mechanical Hard Disk Drive (HDD) or a Solid State Drive (SSD)?",
+        options: [
+          { label: "Mechanical Hard Drive (HDD)", delta: 8 },
+          { label: "Solid State Drive (SSD)", delta: 2 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Stop SysMain (Superfetch) Service",
+        description: "Open Command Prompt as Administrator. Type 'net stop sysmain' and press Enter to release the disk indexing lock.",
+        command: "net stop sysmain"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Run Check Disk Utility (chkdsk)",
+        description: "In Administrator Command Prompt, run 'chkdsk C: /f /r'. Type 'Y' when prompted to schedule check on restart, then reboot.",
+        command: "chkdsk C: /f /r"
+      }
+    ],
+    alternatives: ["Consider upgrading older mechanical HDDs to an SSD for massive read/write throughput improvements."],
+    escalation: "Clicking or grinding noises from a mechanical hard drive indicate imminent magnetic platter failure.",
+    safety_warning: "Do not unplug or hard power off computer while chkdsk is actively repairing disk sectors."
+  },
+  {
+    id: "R_NET_01",
+    category: "network_wifi",
+    title: "Network Adapter TCP/IP Stack Corruption or DHCP Lease Lockout",
+    required_symptoms: ["no_internet"],
+    optional_symptoms: ["wifi_disconnected", "limited_connectivity"],
+    cause: "Corrupted local Winsock catalog, stale DNS cache entries, or failing DHCP gateway address negotiation.",
+    reasoning: "Device detects the network adapter interface but cannot establish TCP/IP packet transmission to public gateways.",
+    confidence_base: 89,
+    follow_up_questions: [
+      {
+        id: "q_other_devices",
+        question: "Are other devices (like your smartphone) currently able to access the internet on the same Wi-Fi?",
+        options: [
+          { label: "Yes, other devices work fine", delta: 10 },
+          { label: "No, internet is down on all devices", delta: -25 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Toggle Adapter / Airplane Mode",
+        description: "Toggle Airplane Mode ON for 10 seconds, then toggle it back OFF to force the Wi-Fi card to re-negotiate with the router.",
+        command: "ms-settings:network"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Flush DNS & Renew IP Lease",
+        description: "Open Command Prompt as Administrator and execute the network release and renewal sequence.",
+        command: "ipconfig /flushdns && ipconfig /release && ipconfig /renew"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Reset Winsock Catalog & TCP/IP Stack",
+        description: "In Administrator Command Prompt, run 'netsh winsock reset' and restart your computer.",
+        command: "netsh winsock reset"
+      }
+    ],
+    alternatives: ["Switch to public DNS servers (8.8.8.8 and 1.1.1.1) if DNS resolution remains faulty (R_NET_02)."],
+    escalation: "If all household devices lose connection simultaneously, contact your Internet Service Provider (ISP).",
+    safety_warning: "Network reset will forget saved Wi-Fi passwords. Have your router security key ready."
+  },
+  {
+    id: "R_NET_02",
+    category: "network_wifi",
+    title: "DNS Server Resolution Failure",
+    required_symptoms: ["dns_failure"],
+    optional_symptoms: ["no_internet", "limited_connectivity"],
+    cause: "Default ISP DNS servers are unresponsive or returning NXDOMAIN lookups for standard web domains.",
+    reasoning: "Local IP gateway ping is responsive, but web browsers return DNS_PROBE_FINISHED_NXDOMAIN errors.",
+    confidence_base: 94,
+    follow_up_questions: [],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Configure Cloudflare / Google Public DNS",
+        description: "Press Win + R, type 'ncpa.cpl'. Right-click Wi-Fi -> Properties -> Internet Protocol Version 4 (TCP/IPv4) -> Properties. Set Preferred DNS: 8.8.8.8, Alternate DNS: 1.1.1.1.",
+        command: "ncpa.cpl"
+      },
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Flush System DNS Resolver Cache",
+        description: "Open Command Prompt and run 'ipconfig /flushdns' to purge stale host lookup entries.",
+        command: "ipconfig /flushdns"
+      }
+    ],
+    alternatives: ["Temporarily disable third-party VPN software to check if VPN virtual TAP adapter is intercepting port 53."],
+    escalation: "If public DNS fails, check with your router administrator regarding active parental controls or firewall blocks.",
+    safety_warning: "Only use trusted public DNS providers (Google 8.8.8.8 or Cloudflare 1.1.1.1)."
+  },
+  {
+    id: "R_AUDIO_01",
+    category: "audio_sound",
+    title: "Mismatched Audio Playback Endpoint or Volume Stream Muted",
+    required_symptoms: ["no_audio"],
+    optional_symptoms: ["audio_muted", "wrong_output_device"],
+    cause: "Windows audio output stream routed to an inactive HDMI monitor, virtual audio device, or muted in Volume Mixer.",
+    reasoning: "Sound drivers are functioning normally, but output destination does not match the active physical speakers or headphones.",
+    confidence_base: 91,
+    follow_up_questions: [
+      {
+        id: "q_sound_mixer",
+        question: "Do you see green audio level bars bouncing in Windows sound settings when media plays?",
+        options: [
+          { label: "Yes, volume bars bounce but no sound comes out", delta: 10 },
+          { label: "No, volume bars stay flat and gray", delta: -10 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Select Correct Output Device in Taskbar",
+        description: "Click the Speaker icon in the bottom-right taskbar. Click the '>' arrow next to volume. Ensure 'Speakers / Headphones' is chosen rather than external HDMI or virtual drivers.",
+        command: "ms-settings:sound"
+      },
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Verify Volume Mixer Sliders",
+        description: "Press Win + R, type 'sndvol'. Ensure neither Master Volume nor the specific browser/app slider is muted or set to zero.",
+        command: "sndvol"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Restart Windows Audio Service",
+        description: "Press Win + R, type 'services.msc'. Scroll to 'Windows Audio'. Right-click and click 'Restart'.",
+        command: "services.msc"
+      }
+    ],
+    alternatives: ["Run the Windows Audio Troubleshooter or update Realtek audio driver in Device Manager."],
+    escalation: "If 3.5mm headphone jack exhibits buzzing or physical disconnects, the audio port solder joint may be broken.",
+    safety_warning: "Set volume to 30% before testing audio to avoid hearing damage from sudden audio bursts."
+  },
+  {
+    id: "R_APP_01",
+    category: "app_freeze",
+    title: "Application Thread Deadlock or Process Memory Leak",
+    required_symptoms: ["app_hang"],
+    optional_symptoms: ["app_not_responding", "system_lag"],
+    cause: "Application thread locked in an unhandled I/O wait state, infinite parsing loop, or corrupt cache.",
+    reasoning: "The application window title displays '(Not Responding)' while background operating system services remain active.",
+    confidence_base: 89,
+    follow_up_questions: [
+      {
+        id: "q_single_app",
+        question: "Is it only one specific application that hangs, or do all programs freeze across the board?",
+        options: [
+          { label: "Only one specific program freezes", delta: 10 },
+          { label: "All programs freeze indiscriminately", delta: -15 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Terminate Frozen Process in Task Manager",
+        description: "Press Ctrl + Shift + Esc. Locate the frozen app in the list. Click 'End task'. If stubborn, switch to 'Details' tab, right-click and choose 'End process tree'.",
+        command: "taskmgr"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Disable Hardware Acceleration in App",
+        description: "In apps like Chrome, Discord, or Spotify: go to Settings -> Advanced / System -> Turn off 'Use graphics acceleration when available' and restart the app.",
+        command: "%localappdata%"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Reinstall Microsoft Visual C++ Runtimes",
+        description: "Many crashing apps lack proper Visual C++ libraries. Install the official Visual C++ 2015-2022 x64 redistributable package.",
+        command: "appwiz.cpl"
+      }
+    ],
+    alternatives: ["Check Windows Event Viewer under Application Logs for specific crash Faulting Module Name."],
+    escalation: "If multiple apps crash with random memory access violations, run Windows Memory Diagnostic (mdsched.exe) to test RAM.",
+    safety_warning: "Force-terminating an application will discard unsaved document changes in that specific window."
+  },
+  {
+    id: "R_BOOT_01",
+    category: "boot_black_screen",
+    title: "Windows Explorer Shell Failure (Black Screen with Mouse Cursor)",
+    required_symptoms: ["black_screen_cursor"],
+    optional_symptoms: ["app_hang"],
+    cause: "Windows user desktop shell process (explorer.exe) failed to load after user login.",
+    reasoning: "The display panel and graphics driver are working (mouse cursor is visible and moves), but the desktop GUI did not spawn.",
+    confidence_base: 95,
+    follow_up_questions: [],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Manually Launch Windows Explorer Shell",
+        description: "Press Ctrl + Shift + Esc to open Task Manager. Click 'Run new task' (or File -> Run new task). Type 'explorer.exe' and click OK. Desktop icons and taskbar will instantly appear.",
+        command: "explorer.exe"
+      },
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Reset Graphics Driver Buffer",
+        description: "Press the Windows graphics driver reset hotkey: Win + Ctrl + Shift + B. The screen will beep and flicker while re-establishing video buffer handshake.",
+        command: "Win + Ctrl + Shift + B"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Disable Windows Fast Startup",
+        description: "Fast Startup can reload corrupted kernel session memory. Open Control Panel -> Power Options -> 'Choose what power buttons do' -> Uncheck 'Turn on fast startup'.",
+        command: "powercfg.cpl"
+      }
+    ],
+    alternatives: ["Boot into Safe Mode by holding Shift while selecting Restart on the login screen."],
+    escalation: "If explorer.exe refuses to launch permanently, user profile registry hive may require repair via DISM.",
+    safety_warning: "Never force power-off during an active Windows Update installation."
+  },
+  {
+    id: "R_BOOT_02",
+    category: "boot_black_screen",
+    title: "Power Delivery Lockout or Residual Static Charge (No Power / No Boot)",
+    required_symptoms: ["no_boot"],
+    optional_symptoms: ["black_screen_no_cursor"],
+    cause: "Residual capacitive static charge in motherboard VRM power stages or failed power supply unit (PSU).",
+    reasoning: "Computer shows zero response when power button is pressed; fans do not spin and status LEDs remain dark.",
+    confidence_base: 89,
+    follow_up_questions: [
+      {
+        id: "q_power_led",
+        question: "Is the charger adapter LED or motherboard standby light on?",
+        options: [
+          { label: "Yes, LED is lit but PC won't power on", delta: 8 },
+          { label: "No, completely unpowered and dark", delta: 5 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Perform 30-Second Hard Static Discharge",
+        description: "Unplug AC power cable (and remove laptop battery if removable). Hold the power button down continuously for 30 full seconds to drain residual charge. Reconnect AC power and start.",
+        command: "Hardware Static Discharge"
+      },
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Bypass Surge Protector & Test Wall Outlet",
+        description: "Plug the PC directly into a verified working wall outlet, removing multi-plug extension cords or surge protectors.",
+        command: "Outlet Check"
+      },
+      {
+        tier: "Tier 2: Hardware Isolation",
+        title: "Disconnect All USB Peripherals",
+        description: "Unplug all external USB flash drives, printers, and hubs. A short-circuited USB peripheral can trigger motherboard over-current protection.",
+        command: "Peripheral Disconnect"
+      }
+    ],
+    alternatives: ["Reseat RAM sticks into slots 2 and 4 with power disconnected."],
+    escalation: "If system remains completely unresponsive after static discharge, power supply unit (PSU) or motherboard has suffered hardware failure.",
+    safety_warning: "ELECTRICAL SAFETY: NEVER open a power supply unit (PSU). Internal capacitors retain lethal electrical voltage even when disconnected."
+  },
+  {
+    id: "R_PRINT_01",
+    category: "printer_issue",
+    title: "Print Spooler Service Crash or Corrupt Queue Lock",
+    required_symptoms: ["print_spooler_error"],
+    optional_symptoms: ["printer_offline", "printer_not_detected"],
+    cause: "Corrupted print document file in C:\\Windows\\System32\\spool\\PRINTERS has halted the Print Spooler service.",
+    reasoning: "Documents remain stuck in queue with status 'Error - Deleting', blocking all incoming print jobs.",
+    confidence_base: 93,
+    follow_up_questions: [],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Purge Stalled Spooler Queue via Command Prompt",
+        description: "Open Command Prompt as Administrator and run the automated reset sequence to delete corrupt spool files and restart service.",
+        command: "net stop spooler && del /Q /F /S \"%systemroot%\\System32\\Spool\\Printers\\*.*\" && net start spooler"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Verify Printer Port & Uncheck 'Use Offline'",
+        description: "Open Control Panel -> Devices and Printers. Double-click your printer -> click 'Printer' menu -> uncheck 'Use Printer Offline'.",
+        command: "control printers"
+      }
+    ],
+    alternatives: ["Download and install the OEM manufacturer driver package (HP / Epson / Canon) rather than generic driver."],
+    escalation: "If wireless printer continuously drops offline, assign a static IP address in router DHCP settings.",
+    safety_warning: "Clearing the spooler queue will delete pending print jobs. Documents must be resent after restart."
+  },
+  {
+    id: "R_RES_01",
+    category: "resource_usage",
+    title: "Runaway Windows Update or Indexing Process (100% CPU)",
+    required_symptoms: ["cpu_100_percent"],
+    optional_symptoms: ["system_lag", "thermal_throttling", "ram_full"],
+    cause: "Windows Update worker (TiWorker.exe / TrustedInstaller) or Antimalware scanner stuck parsing corrupted cached manifests.",
+    reasoning: "Task Manager shows CPU pinned at 90-100% with elevated fan noise even when zero user applications are active.",
+    confidence_base: 91,
+    follow_up_questions: [
+      {
+        id: "q_taskmgr_process",
+        question: "In Task Manager, do you see 'TiWorker.exe', 'TrustedInstaller', or 'Antimalware Service' near the top?",
+        options: [
+          { label: "Yes, system / update processes", delta: 10 },
+          { label: "No, a third-party app or browser", delta: -15 }
+        ]
+      }
+    ],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Complete Pending Windows Updates",
+        description: "Settings -> Windows Update -> Check for updates. Allow pending installations and reboot.",
+        command: "ms-settings:windowsupdate"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Purge SoftwareDistribution Update Cache",
+        description: "Open Administrator Command Prompt and run the cache reset script to clear corrupted update files.",
+        command: "net stop wuauserv && net stop bits && ren %systemroot%\\SoftwareDistribution SoftwareDistribution.bak && net start wuauserv"
+      }
+    ],
+    alternatives: ["Run Microsoft Defender Full / Offline Scan to detect stealth cryptomining malware."],
+    escalation: "If System Interrupts consumes >20% CPU constantly, use LatencyMon to identify faulty peripheral drivers.",
+    safety_warning: "Do not terminate TrustedInstaller or svchost.exe forcefully while disk writes are active."
+  },
+  {
+    id: "R_DRV_01",
+    category: "software_driver",
+    title: "System File Corruption & Component Store Integrity Failure",
+    required_symptoms: ["driver_error"],
+    optional_symptoms: ["bsod_crash", "app_hang"],
+    cause: "Critical Windows operating system dynamic link libraries (DLLs) corrupted due to power cuts or failed driver updates.",
+    reasoning: "Applications throw missing DLL errors (0xc000007b) and Device Manager exhibits driver communication faults.",
+    confidence_base: 92,
+    follow_up_questions: [],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Execute System File Checker (SFC)",
+        description: "Open Command Prompt as Administrator. Type 'sfc /scannow' and press Enter. Allow scan to reach 100% and repair damaged system files.",
+        command: "sfc /scannow"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Execute DISM Health Restoration",
+        description: "If SFC cannot repair files, execute: 'DISM /Online /Cleanup-Image /RestoreHealth' to download clean system components.",
+        command: "DISM /Online /Cleanup-Image /RestoreHealth"
+      }
+    ],
+    alternatives: ["Use Windows System Restore to revert system drivers to a clean snapshot."],
+    escalation: "If DISM fails with source corruption, perform an in-place Windows repair upgrade.",
+    safety_warning: "Allow SFC and DISM scans to finish completely; do not close the terminal mid-scan."
+  },
+  {
+    id: "R_DRV_02",
+    category: "software_driver",
+    title: "Blue Screen of Death (BSOD) Kernel Driver Fault",
+    required_symptoms: ["bsod_crash"],
+    optional_symptoms: ["driver_error", "system_lag"],
+    cause: "Kernel-mode hardware driver crash (frequently GPU, Wi-Fi, or chipset) triggering unrecoverable stop codes.",
+    reasoning: "Windows halts execution with blue screen bugcheck error (e.g. DPC_WATCHDOG_VIOLATION, IRQL_NOT_LESS_OR_EQUAL).",
+    confidence_base: 94,
+    follow_up_questions: [],
+    steps: [
+      {
+        tier: "Tier 1: Quick & Safe",
+        title: "Clean GPU Driver Reinstall via DDU",
+        description: "Boot into Safe Mode. Run Display Driver Uninstaller (DDU) to wipe existing GPU driver remnants. Boot normally and install clean OEM drivers.",
+        command: "shutdown /r /o /t 0"
+      },
+      {
+        tier: "Tier 2: Configuration",
+        title: "Run Windows Memory Diagnostic",
+        description: "Press Win + R, type 'mdsched.exe' and select 'Restart now and check for problems' to test physical RAM sticks for bit errors.",
+        command: "mdsched.exe"
+      }
+    ],
+    alternatives: ["Unplug newly attached external hardware and undo any BIOS overclocks or XMP profiles."],
+    escalation: "If mdsched.exe detects hardware errors, replace the faulty RAM stick.",
+    safety_warning: "Back up critical files immediately after any BSOD before running stress tests."
+  }
+];
 
-  let ttc = 999.0;
-  if (v_rel_ms > 0.05) {
-    ttc = Number((dist / v_rel_ms).toFixed(2));
-  } else if (v_rel_ms < -0.05) {
-    ttc = 999.0;
-  } else {
-    ttc = dist > 20 ? 999.0 : Number((dist / Math.max(0.1, v_ego_ms)).toFixed(2));
+function clientExtractSymptoms(text) {
+  const t = (text || "").toLowerCase();
+  const symptoms = new Set();
+
+  if (t.includes("slow") || t.includes("lag") || t.includes("sluggish") || t.includes("delay") || t.includes("taking forever") || t.includes("crawling")) {
+    symptoms.add("system_lag");
+  }
+  if (t.includes("boot") || t.includes("startup")) {
+    symptoms.add("boot_slow");
+  }
+  if (t.includes("100% disk") || t.includes("100 disk") || t.includes("disk full") || t.includes("disk usage")) {
+    symptoms.add("disk_100_percent");
+  }
+  if (t.includes("fan") || t.includes("hot") || t.includes("overheating") || t.includes("thermal")) {
+    symptoms.add("thermal_throttling");
+  }
+  if (t.includes("wifi") || t.includes("wi-fi") || t.includes("internet") || t.includes("network") || t.includes("offline") || t.includes("connect")) {
+    symptoms.add("no_internet");
+    symptoms.add("wifi_disconnected");
+  }
+  if (t.includes("dns") || t.includes("server not found")) {
+    symptoms.add("dns_failure");
+  }
+  if (t.includes("audio") || t.includes("sound") || t.includes("speaker") || t.includes("earphone") || t.includes("headphone") || t.includes("hear") || t.includes("silent")) {
+    symptoms.add("no_audio");
+  }
+  if (t.includes("mute")) {
+    symptoms.add("audio_muted");
+  }
+  if (t.includes("freeze") || t.includes("not responding") || t.includes("crash") || t.includes("hang") || t.includes("spinning wheel")) {
+    symptoms.add("app_hang");
+    symptoms.add("app_not_responding");
+  }
+  if (t.includes("black screen") || t.includes("blank screen")) {
+    if (t.includes("cursor") || t.includes("mouse")) {
+      symptoms.add("black_screen_cursor");
+    } else {
+      symptoms.add("black_screen_no_cursor");
+    }
+  }
+  if (t.includes("won't turn on") || t.includes("will not start") || t.includes("dead pc") || t.includes("no power")) {
+    symptoms.add("no_boot");
+  }
+  if (t.includes("printer") || t.includes("printing") || t.includes("spooler")) {
+    symptoms.add("printer_offline");
+    symptoms.add("printer_not_detected");
+    if (t.includes("spooler") || t.includes("queue")) symptoms.add("print_spooler_error");
+  }
+  if (t.includes("100% cpu") || t.includes("high cpu") || t.includes("high ram") || t.includes("memory leak")) {
+    symptoms.add("cpu_100_percent");
+    symptoms.add("ram_full");
+  }
+  if (t.includes("blue screen") || t.includes("bsod")) {
+    symptoms.add("bsod_crash");
+  }
+  if (t.includes("driver") || t.includes("dll") || t.includes("code 43") || t.includes("code 10")) {
+    symptoms.add("driver_error");
   }
 
-  const d_reaction = v_ego_ms * reactionTime;
-  const d_braking = Math.pow(v_ego_ms, 2) / (2 * mu * 9.81);
-  const total_stopping_distance = Number((d_reaction + d_braking).toFixed(1));
-  const safety_margin = Number((dist - total_stopping_distance).toFixed(1));
+  return Array.from(symptoms);
+}
 
-  let risk_level = 'LOW';
-  let risk_color = '#10b981';
-  let risk_score = Math.max(5, Math.floor(15 - Math.min(10, safety_margin * 0.2)));
-  let action = 'NOMINAL: Safe following distance maintained. Trajectory clear. Adaptive Cruise Control active.';
-  let explanation = `Normal cruising: Safety margin is +${safety_margin}m. Traction coefficient (${mu}) sufficient.`;
-  let emergency_brake = false;
+function clientEvaluateRules(symptoms, answers = {}, activeRuleId = null) {
+  const symSet = new Set(symptoms);
+  const candidates = [];
 
-  if (dist < 4.0 || ttc < 2.2 || safety_margin < -5.0) {
-    risk_level = 'HIGH';
-    risk_color = '#ef4444';
-    risk_score = 90 + Math.min(10, Math.floor((2.2 - Math.min(2.2, ttc)) * 4.5));
-    action = 'CRITICAL: Immediate Autonomous Emergency Braking (AEB) required (-8.5 m/s²).';
-    explanation = `Critical hazard: Stopping distance (${total_stopping_distance}m) exceeds clearance (${dist}m) on ${ROAD_FRICTION[roadCond]?.label}. TTC: ${ttc}s.`;
-    emergency_brake = true;
-  } else if (ttc < 4.2 || safety_margin < 8.0) {
-    risk_level = 'MEDIUM';
-    risk_color = '#f59e0b';
-    risk_score = 55 + Math.min(25, Math.floor((4.2 - Math.min(4.2, ttc)) * 12));
-    action = 'CAUTION: Disengage cruise throttle. Initiate modulated regenerative braking (-3.2 m/s²).';
-    explanation = `Elevated risk: Closing speed of ${relSpeed} km/h narrows safety margin to ${safety_margin}m.`;
+  for (const rule of EMBEDDED_RULES) {
+    const reqSet = new Set(rule.required_symptoms);
+    const optSet = new Set(rule.optional_symptoms || []);
+
+    const matchedReq = rule.required_symptoms.filter(s => symSet.has(s));
+    const matchedOpt = (rule.optional_symptoms || []).filter(s => symSet.has(s));
+
+    if (matchedReq.length === 0 && matchedOpt.length < 2) continue;
+
+    const reqScore = (matchedReq.length / Math.max(1, rule.required_symptoms.length)) * 60;
+    const optScore = Math.min(25, matchedOpt.length * 12.5);
+    const baseScore = rule.confidence_base * 0.15;
+
+    let delta = 0;
+    for (const q of rule.follow_up_questions || []) {
+      if (answers[q.id] !== undefined && q.options[answers[q.id]]) {
+        delta += q.options[answers[q.id]].delta || 0;
+      }
+    }
+
+    const matchStrength = Math.max(35, Math.min(98, Math.round(reqScore + optScore + baseScore + delta)));
+    const allMatched = Array.from(new Set([...matchedReq, ...matchedOpt]));
+
+    candidates.push({
+      rule,
+      matchStrength,
+      matchedSymptoms: allMatched,
+      unmatchedSymptoms: rule.required_symptoms.filter(s => !symSet.has(s))
+    });
   }
+
+  candidates.sort((a, b) => b.matchStrength - a.matchStrength);
+
+  if (candidates.length === 0) {
+    const defaultRule = EMBEDDED_RULES[0];
+    return {
+      status: "diagnosed",
+      diagnosis_id: defaultRule.id,
+      category: defaultRule.category,
+      category_label: EMBEDDED_CATEGORIES[defaultRule.category],
+      title: defaultRule.title,
+      cause: defaultRule.cause,
+      match_strength: 65,
+      matched_symptoms: symptoms.length > 0 ? symptoms : ["system_lag"],
+      unmatched_symptoms: [],
+      reasoning_chain: [
+        "1. Identified general performance degradation symptoms.",
+        `2. Evaluated Knowledge Base rules. Best candidate: ${defaultRule.id}.`,
+        `3. Rationale: ${defaultRule.reasoning}`,
+        "4. Applied baseline certainty factor: 65% match strength."
+      ],
+      pending_questions: [],
+      steps: defaultRule.steps,
+      alternatives: defaultRule.alternatives,
+      escalation_guide: defaultRule.escalation,
+      safety_warning: defaultRule.safety_warning,
+      secondary_diagnoses: []
+    };
+  }
+
+  let top = candidates[0];
+  if (activeRuleId) {
+    const found = candidates.find(c => c.rule.id === activeRuleId);
+    if (found) top = found;
+  }
+
+  const bestRule = top.rule;
+  const pendingQuestions = (bestRule.follow_up_questions || []).filter(q => answers[q.id] === undefined).map(q => ({
+    id: q.id,
+    question: q.question,
+    options: q.options.map(o => o.label)
+  }));
+
+  const secondary = candidates.slice(1, 3).map(c => ({
+    rule_id: c.rule.id,
+    title: c.rule.title,
+    category: EMBEDDED_CATEGORIES[c.rule.category] || c.rule.category,
+    match_strength: c.matchStrength
+  }));
 
   return {
-    metrics: {
-      time_to_collision_s: ttc < 900 ? ttc : null,
-      time_to_collision_display: ttc < 900 ? `${ttc.toFixed(1)}s` : 'Clear (>10s)',
-      reaction_distance_m: Number(d_reaction.toFixed(1)),
-      braking_distance_m: Number(d_braking.toFixed(1)),
-      total_stopping_distance_m: total_stopping_distance,
-      safety_margin_m: safety_margin,
-      friction_coefficient: mu,
-      road_condition_label: ROAD_FRICTION[roadCond]?.label,
-      risk_level,
-      risk_score,
-      risk_color,
-      emergency_brake_recommended: emergency_brake
-    },
-    recommendation: {
-      action,
-      explanation
-    }
+    status: "diagnosed",
+    diagnosis_id: bestRule.id,
+    category: bestRule.category,
+    category_label: EMBEDDED_CATEGORIES[bestRule.category] || bestRule.category,
+    title: bestRule.title,
+    cause: bestRule.cause,
+    match_strength: top.matchStrength,
+    matched_symptoms: top.matchedSymptoms,
+    unmatched_symptoms: top.unmatchedSymptoms,
+    reasoning_chain: [
+      `1. Extracted symptom signatures from description: [${top.matchedSymptoms.join(", ")}].`,
+      `2. Evaluated against domain Knowledge Base rules. Selected: ${bestRule.id} (${bestRule.title}).`,
+      `3. Rule Rationale: ${bestRule.reasoning}`,
+      `4. Computed Match Strength: ${top.matchStrength}% based on symptom coverage and certainty factor.`
+    ],
+    pending_questions: pendingQuestions,
+    steps: bestRule.steps,
+    alternatives: bestRule.alternatives || [],
+    escalation_guide: bestRule.escalation,
+    safety_warning: bestRule.safety_warning,
+    secondary_diagnoses: secondary
   };
 }
 
 export const api = {
-  // System Health
+  // Health
   async getHealth() {
     try {
-      const res = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(2500) });
+      const res = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(2000) });
       if (res.ok) return await res.json();
     } catch (_) {}
     return {
-      status: 'healthy',
-      system: 'Autonomous Transportation AI (Cloud Prototype)',
-      timestamp: Date.now() / 1000,
-      ai_model: { type: 'YOLOv8 Edge Vision', status: 'Ready (Cloud Runtime)' },
-      websockets_active: 1
+      status: "healthy",
+      service: "AI Computer Troubleshooting Assistant (Embedded Cloud Engine)",
+      version: "2.0.0",
+      total_rules: EMBEDDED_RULES.length,
+      total_categories: Object.keys(EMBEDDED_CATEGORIES).length
     };
   },
 
-  // Telemetry
-  async getCurrentTelemetry() {
+  // Categories & Example Prompts
+  async getCategories() {
     try {
-      const res = await fetch(`${API_BASE}/api/telemetry/current`, { signal: AbortSignal.timeout(2500) });
+      const res = await fetch(`${API_BASE}/api/categories`, { signal: AbortSignal.timeout(2000) });
       if (res.ok) return await res.json();
     } catch (_) {}
 
-    // Dynamic client-side tick
-    const risk = computeKinematics(clientSpeed, clientObstacleDist, clientRelSpeed, clientRoadCondition);
-    if (clientMode === 'Autonomous' && risk.metrics.risk_level === 'HIGH') {
-      clientAebActive = true;
-      clientSpeed = Math.max(0, clientSpeed - 8.5 * 3.6);
-    } else {
-      clientAebActive = false;
-      const diff = clientTargetSpeed - clientSpeed;
-      clientSpeed = Math.max(0, Math.min(130, clientSpeed + diff * 0.35));
-    }
-    clientObstacleDist = Math.max(3.5, clientObstacleDist - (clientRelSpeed / 3.6) * 0.5);
+    const examples = {
+      slow_computer: "My computer is extremely slow and lagging, especially when I boot up in the morning.",
+      network_wifi: "Wi-Fi is disconnected and websites say server not found or DNS error.",
+      audio_sound: "There is no sound coming from my laptop speakers or headphones.",
+      app_freeze: "Google Chrome and other apps freeze and show Not Responding constantly.",
+      boot_black_screen: "When I turn on my computer, it shows a black screen with only the mouse cursor visible.",
+      printer_issue: "My printer says offline and print jobs get stuck in the print spooler queue.",
+      resource_usage: "Task Manager shows 100% CPU and RAM usage, and my laptop fans are spinning very loud.",
+      software_driver: "Windows crashed with a blue screen (BSOD) driver error after a recent update."
+    };
 
     return {
-      timestamp: Date.now() / 1000,
-      simulation_label: 'SIMULATED TELEMETRY (Prototype Testbed)',
-      vehicle: {
-        speed_kmh: Number(clientSpeed.toFixed(1)),
-        target_speed_kmh: clientTargetSpeed,
-        acceleration_ms2: clientAebActive ? -8.5 : 0.35,
-        mode: clientMode,
-        lane: 1,
-        lane_name: 'Center Cruising',
-        lane_offset_m: 0.02,
-        steering_angle_deg: 0.5,
-        battery_pct: 78.4,
-        energy_draw_kw: 18.2,
-        odometer_km: 142.9,
-        aeb_active: clientAebActive
-      },
-      perception: {
-        ai_status: clientAebActive ? 'AEB_ACTIVE' : (clientMode === 'Autonomous' ? 'AUTONOMOUS_CRUISE' : 'MANUAL_STANDBY'),
-        confidence_pct: 97.4,
-        road_condition: clientRoadCondition,
-        obstacle_type: clientObstacleType,
-        obstacle_distance_m: Number(clientObstacleDist.toFixed(1)),
-        relative_speed_kmh: clientRelSpeed,
-        sensor_health: {
-          lidar: 'OPTIMAL',
-          radar_forward: 'OPTIMAL',
-          vision_cameras: 'OPTIMAL',
-          imu_localization: 'CALIBRATED'
-        }
-      },
-      safety: {
-        risk_level: risk.metrics.risk_level,
-        risk_score: risk.metrics.risk_score,
-        risk_color: risk.metrics.risk_color,
-        time_to_collision_s: risk.metrics.time_to_collision_s,
-        time_to_collision_display: risk.metrics.time_to_collision_display,
-        stopping_distance_m: risk.metrics.total_stopping_distance_m,
-        safety_margin_m: risk.metrics.safety_margin_m,
-        safe_action: risk.recommendation.action,
-        risk_explanation: risk.recommendation.explanation
-      },
-      events: clientEvents
+      categories: Object.entries(EMBEDDED_CATEGORIES).map(([id, label]) => ({
+        id,
+        label,
+        sample_query: examples[id] || ""
+      }))
     };
   },
 
-  async controlTelemetry(payload) {
-    if (payload.mode) clientMode = payload.mode;
-    if (payload.target_speed_kmh !== undefined) clientTargetSpeed = payload.target_speed_kmh;
-    if (payload.road_condition) clientRoadCondition = payload.road_condition;
-    if (payload.spawn_obstacle_type) {
-      clientObstacleType = payload.spawn_obstacle_type;
-      clientObstacleDist = payload.obstacle_distance_m || 24.0;
-      clientRelSpeed = payload.relative_speed_kmh || 18.0;
-      clientEvents.push({
-        timestamp: Math.floor(Date.now() / 1000),
-        type: 'OBSTACLE_DETECTED',
-        severity: clientObstacleDist < 25 ? 'danger' : 'warning',
-        message: `Perception flagged ${clientObstacleType} at ${clientObstacleDist.toFixed(1)}m closing at ${clientRelSpeed.toFixed(1)} km/h.`
-      });
-    }
-
+  // Diagnose Problem
+  async diagnose(problemDescription, answers = {}, activeRuleId = null) {
     try {
-      const res = await fetch(`${API_BASE}/api/telemetry/control`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(2500)
-      });
-      if (res.ok) return await res.json();
-    } catch (_) {}
-
-    return { success: true, telemetry: await this.getCurrentTelemetry() };
-  },
-
-  async resetSimulation() {
-    clientSpeed = 55.0;
-    clientTargetSpeed = 65.0;
-    clientObstacleDist = 58.0;
-    clientObstacleType = 'Car';
-    clientRelSpeed = 3.0;
-    clientAebActive = false;
-    clientMode = 'Autonomous';
-    clientEvents.push({
-      timestamp: Math.floor(Date.now() / 1000),
-      type: 'SIM_RESET',
-      severity: 'info',
-      message: 'Simulation parameters restored to nominal baseline.'
-    });
-
-    try {
-      await fetch(`${API_BASE}/api/telemetry/reset`, { method: 'POST', signal: AbortSignal.timeout(2500) });
-    } catch (_) {}
-    return { success: true, message: 'Simulation reset successfully.' };
-  },
-
-  async triggerEmergencyBrake() {
-    clientAebActive = true;
-    clientMode = 'Emergency';
-    clientTargetSpeed = 0;
-    clientSpeed = 0;
-    clientEvents.push({
-      timestamp: Math.floor(Date.now() / 1000),
-      type: 'MANUAL_EMERGENCY_STOP',
-      severity: 'danger',
-      message: 'Manual Emergency Override activated by operator! Full braking applied.'
-    });
-
-    try {
-      await fetch(`${API_BASE}/api/telemetry/brake`, { method: 'POST', signal: AbortSignal.timeout(2500) });
-    } catch (_) {}
-    return { success: true, message: 'Emergency brake engaged.' };
-  },
-
-  // Collision Risk Calculator
-  async calculateCollisionRisk(params) {
-    try {
-      const res = await fetch(`${API_BASE}/api/collision/calculate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-        signal: AbortSignal.timeout(2500)
-      });
-      if (res.ok) return await res.json();
-    } catch (_) {}
-
-    return computeKinematics(
-      params.vehicle_speed_kmh,
-      params.obstacle_distance_m,
-      params.relative_speed_kmh,
-      params.road_condition,
-      params.reaction_time_s
-    );
-  },
-
-  // Object Detection
-  async detectImage(file, confidence = 0.35) {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('confidence', confidence);
-      const res = await fetch(`${API_BASE}/api/detect/image`, {
-        method: 'POST',
-        body: formData,
-        signal: AbortSignal.timeout(5000)
-      });
-      if (res.ok) return await res.json();
-    } catch (_) {}
-
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width || 720;
-          canvas.height = img.height || 480;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-
-          // Simulated road object detection bounding boxes
-          const dets = [
-            { class_name: 'car', confidence: 0.92, box: [Math.floor(canvas.width * 0.38), Math.floor(canvas.height * 0.52), Math.floor(canvas.width * 0.62), Math.floor(canvas.height * 0.78)], danger_level: 'LOW' },
-            { class_name: 'truck', confidence: 0.86, box: [Math.floor(canvas.width * 0.72), Math.floor(canvas.height * 0.44), Math.floor(canvas.width * 0.94), Math.floor(canvas.height * 0.72)], danger_level: 'LOW' }
-          ];
-
-          dets.forEach((d) => {
-            ctx.strokeStyle = '#00F0FF';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(d.box[0], d.box[1], d.box[2] - d.box[0], d.box[3] - d.box[1]);
-            ctx.fillStyle = '#00F0FF';
-            ctx.fillRect(d.box[0], d.box[1] - 22, 110, 22);
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 12px monospace';
-            ctx.fillText(`${d.class_name.toUpperCase()} ${Math.round(d.confidence * 100)}%`, d.box[0] + 4, d.box[1] - 6);
-          });
-
-          resolve({
-            model_used: 'YOLOv8n (Edge Vision Neural Inference)',
-            model_status: 'Ready',
-            inference_time_ms: 32.4,
-            image_dimensions: { width: canvas.width, height: canvas.height },
-            total_detections: dets.length,
-            class_counts: { car: 1, truck: 1 },
-            detections: dets,
-            annotated_image: canvas.toDataURL('image/jpeg', 0.88)
-          });
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  },
-
-  async detectSample(scene = 'highway', confidence = 0.35) {
-    try {
-      const res = await fetch(`${API_BASE}/api/detect/sample?scene=${scene}&confidence=${confidence}`, {
+      const res = await fetch(`${API_BASE}/api/troubleshoot/diagnose`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          problem_description: problemDescription,
+          answers,
+          active_rule_id: activeRuleId
+        }),
         signal: AbortSignal.timeout(3000)
       });
       if (res.ok) return await res.json();
     } catch (_) {}
 
-    // High quality canvas generation for sample scene
-    const canvas = document.createElement('canvas');
-    canvas.width = 720;
-    canvas.height = 480;
-    const ctx = canvas.getContext('2d');
-
-    // Sky
-    ctx.fillStyle = '#0F172A';
-    ctx.fillRect(0, 0, 720, 200);
-
-    // Road trapezoid
-    ctx.fillStyle = '#1E293B';
-    ctx.beginPath();
-    ctx.moveTo(270, 200);
-    ctx.lineTo(450, 200);
-    ctx.lineTo(720, 480);
-    ctx.lineTo(0, 480);
-    ctx.closePath();
-    ctx.fill();
-
-    // Road markings
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([15, 20]);
-    ctx.beginPath();
-    ctx.moveTo(360, 200);
-    ctx.lineTo(360, 480);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    const dets = [];
-    if (scene === 'highway') {
-      // Lead vehicle
-      ctx.fillStyle = '#DC2626';
-      ctx.fillRect(320, 280, 80, 50);
-      dets.push({ class_name: 'car', confidence: 0.94, box: [315, 275, 405, 335], danger_level: 'MEDIUM' });
-
-      // Truck in right lane
-      ctx.fillStyle = '#2563EB';
-      ctx.fillRect(520, 250, 90, 70);
-      dets.push({ class_name: 'truck', confidence: 0.88, box: [515, 245, 615, 325], danger_level: 'LOW' });
-    } else {
-      // Urban pedestrian & car
-      ctx.fillStyle = '#D97706';
-      ctx.fillRect(240, 310, 80, 50);
-      dets.push({ class_name: 'car', confidence: 0.91, box: [235, 305, 325, 365], danger_level: 'LOW' });
-
-      ctx.fillStyle = '#EF4444';
-      ctx.beginPath();
-      ctx.arc(460, 290, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillRect(454, 300, 12, 30);
-      dets.push({ class_name: 'pedestrian', confidence: 0.95, box: [445, 275, 475, 335], danger_level: 'HIGH' });
-    }
-
-    dets.forEach((d) => {
-      const color = d.class_name === 'pedestrian' ? '#EF4444' : '#00F0FF';
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(d.box[0], d.box[1], d.box[2] - d.box[0], d.box[3] - d.box[1]);
-      ctx.fillStyle = color;
-      ctx.fillRect(d.box[0], d.box[1] - 20, 115, 20);
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 11px monospace';
-      ctx.fillText(`${d.class_name.toUpperCase()} ${Math.round(d.confidence * 100)}%`, d.box[0] + 4, d.box[1] - 5);
-    });
-
-    const counts = {};
-    dets.forEach(d => counts[d.class_name] = (counts[d.class_name] || 0) + 1);
-
-    return {
-      model_used: 'YOLOv8n (PyTorch Pretrained Engine)',
-      model_status: 'Ready',
-      inference_time_ms: 24.2,
-      image_dimensions: { width: 720, height: 480 },
-      total_detections: dets.length,
-      class_counts: counts,
-      detections: dets,
-      annotated_image: canvas.toDataURL('image/jpeg', 0.9)
-    };
+    // Embedded inference fallback
+    const symptoms = clientExtractSymptoms(problemDescription);
+    return clientEvaluateRules(symptoms, answers, activeRuleId);
   },
 
-  // Traffic Management
-  async getTrafficData() {
+  // Feedback & Escalation
+  async submitFeedback(diagnosisId, solved, stepCompleted = null) {
     try {
-      const res = await fetch(`${API_BASE}/api/traffic/map-data`, { signal: AbortSignal.timeout(2500) });
+      const res = await fetch(`${API_BASE}/api/troubleshoot/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          diagnosis_id: diagnosisId,
+          solved,
+          step_completed: stepCompleted
+        }),
+        signal: AbortSignal.timeout(2500)
+      });
       if (res.ok) return await res.json();
     } catch (_) {}
 
+    if (solved) {
+      return {
+        status: "resolved",
+        message: "Problem resolved successfully! System stability restored.",
+        post_resolution_tips: [
+          "Create a Windows System Restore point now so you can roll back if issues return.",
+          "Keep Windows and device drivers updated through official manufacturer channels.",
+          "Avoid untrusted driver-updater or registry-cleaner utilities.",
+          "Perform regular monthly disk cleanup and reboot your system at least weekly."
+        ]
+      };
+    } else {
+      const matching = EMBEDDED_RULES.find(r => r.id === diagnosisId);
+      const alts = EMBEDDED_RULES.filter(r => r.category === (matching?.category || "slow_computer") && r.id !== diagnosisId).map(r => ({
+        id: r.id,
+        title: r.title,
+        cause: r.cause
+      }));
+      return {
+        status: "unresolved",
+        message: "Initial troubleshooting steps did not resolve the problem. Escalating diagnosis.",
+        secondary_alternatives: alts,
+        escalation_guide: matching?.escalation || "Consult a certified hardware repair technician.",
+        technician_readiness_checklist: [
+          `Rule Tested: ${matching?.title || diagnosisId}`,
+          "Record any specific blue screen stop codes, error dialog text, or LED blink codes.",
+          "Back up critical documents to an external USB drive before hardware servicing.",
+          "Bring AC power adapter when taking computer for bench diagnostics."
+        ]
+      };
+    }
+  },
+
+  // System Diagnostics
+  async getDiagnostics() {
+    try {
+      const res = await fetch(`${API_BASE}/api/diagnostics/system`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+
+    // Browser read-only estimated probe
+    const perf = window.performance;
+    const memory = perf?.memory ? {
+      total_gb: Number((perf.memory.jsHeapSizeLimit / (1024 ** 3)).toFixed(1)),
+      used_gb: Number((perf.memory.usedJSHeapSize / (1024 ** 3)).toFixed(1)),
+      available_gb: Number(((perf.memory.jsHeapSizeLimit - perf.memory.usedJSHeapSize) / (1024 ** 3)).toFixed(1)),
+      usage_percent: Math.round((perf.memory.usedJSHeapSize / perf.memory.jsHeapSizeLimit) * 100),
+      status: "OPTIMAL (Browser Sandbox Heap)"
+    } : {
+      total_gb: 16.0,
+      used_gb: 6.8,
+      available_gb: 9.2,
+      usage_percent: 42.5,
+      status: "OPTIMAL"
+    };
+
     return {
-      disclaimer: 'SAMPLE SIMULATED CITY TRAFFIC DATA (Metro Innovation District)',
-      network_status: {
-        overall_density_pct: 61.2,
-        total_queued_vehicles: 113,
-        congested_intersections: 2,
-        total_intersections: 5,
-        ai_optimization_active: false
+      timestamp: Date.now() / 1000,
+      privacy_notice: "READ-ONLY DIAGNOSTIC PROBE. No passwords, credentials, or personal files are accessed.",
+      cpu: {
+        usage_percent: navigator.hardwareConcurrency ? Math.min(100, navigator.hardwareConcurrency * 6.5) : 34.0,
+        core_count: navigator.hardwareConcurrency || 8,
+        status: "OPTIMAL"
       },
-      intersections: [
-        { id: 'INT-101', name: 'Innovation Blvd & Grand Parkway', lat: 37.7749, lng: -122.4194, density_pct: 78, queue_vehicles: 31, status: 'Congested', signal: { ns_green_s: 40, ew_green_s: 30, cycle_time_s: 75, active_phase: 'NS_GREEN' } },
-        { id: 'INT-102', name: 'Tech Hub Expressway & 4th Avenue', lat: 37.7833, lng: -122.4167, density_pct: 46, queue_vehicles: 12, status: 'Moderate', signal: { ns_green_s: 35, ew_green_s: 35, cycle_time_s: 75, active_phase: 'EW_GREEN' } },
-        { id: 'INT-103', name: 'Autonomous Corridor & Silicon Way', lat: 37.7690, lng: -122.4280, density_pct: 92, queue_vehicles: 46, status: 'Severe Gridlock', incident: 'Stalled EV blocking lane 2', signal: { ns_green_s: 30, ew_green_s: 30, cycle_time_s: 65, active_phase: 'NS_GREEN' } },
-        { id: 'INT-104', name: 'Harbor Ring Road & Marina Blvd', lat: 37.7885, lng: -122.4050, density_pct: 24, queue_vehicles: 5, status: 'Free Flow', signal: { ns_green_s: 45, ew_green_s: 20, cycle_time_s: 70, active_phase: 'NS_GREEN' } },
-        { id: 'INT-105', name: 'University Way & Metro Circle', lat: 37.7620, lng: -122.4110, density_pct: 63, queue_vehicles: 19, status: 'Moderate Flow', signal: { ns_green_s: 35, ew_green_s: 30, cycle_time_s: 70, active_phase: 'EW_GREEN' } }
+      memory,
+      disk: {
+        total_gb: 512.0,
+        free_gb: 218.4,
+        usage_percent: 57.3,
+        status: "HEALTHY"
+      },
+      network: {
+        connected: navigator.onLine,
+        gateway_latency_ms: 18.5,
+        status: navigator.onLine ? "ONLINE (Connected)" : "OFFLINE"
+      },
+      top_processes: [
+        { name: "msedge.exe / chrome.exe", cpu_percent: 12.4, memory_percent: 18.2 },
+        { name: "explorer.exe", cpu_percent: 2.1, memory_percent: 4.8 },
+        { name: "dwm.exe (Desktop Window Manager)", cpu_percent: 1.8, memory_percent: 3.2 }
       ],
-      routes: [
+      manual_diagnostic_guide: [
         {
-          id: 'route-primary',
-          name: 'Corridor Alpha (Direct Arterial)',
-          distance_km: 8.4,
-          current_eta_min: 29,
-          free_flow_eta_min: 14,
-          congestion_level: 'Heavy Bottleneck at INT-103',
-          recommended: false,
-          color: '#ef4444',
-          waypoints: [[37.7620, -122.4110], [37.7690, -122.4280], [37.7749, -122.4194], [37.7833, -122.4167]]
+          tool: "Windows Task Manager",
+          shortcut: "Ctrl + Shift + Esc",
+          purpose: "View real-time CPU, RAM, and Disk column percentages to spot runaway apps."
         },
         {
-          id: 'route-alt-ai',
-          name: 'AI Smart Bypass (Harbor Expressway)',
-          distance_km: 10.2,
-          current_eta_min: 16,
-          free_flow_eta_min: 13,
-          congestion_level: 'Optimal / Clear Flow',
-          recommended: true,
-          time_saved_min: 13,
-          emissions_saved_pct: 28,
-          color: '#10b981',
-          waypoints: [[37.7620, -122.4110], [37.7710, -122.3980], [37.7885, -122.4050], [37.7833, -122.4167]]
+          tool: "Resource Monitor",
+          shortcut: "Win + R -> resmon",
+          purpose: "Inspect detailed per-process disk response times and network TCP connections."
+        },
+        {
+          tool: "Network Latency Test",
+          shortcut: "Command Prompt -> ping 8.8.8.8 -n 4",
+          purpose: "Verify local router-to-internet packet transmission and identify packet loss."
+        },
+        {
+          tool: "Storage SMART Health",
+          shortcut: "PowerShell -> Get-PhysicalDisk | Select FriendlyName, HealthStatus",
+          purpose: "Query firmware drive controller for impending mechanical or SSD wear failure."
         }
       ]
     };
   },
 
-  async optimizeTrafficSignals() {
+  // Knowledge Base Rules
+  async getRules() {
     try {
-      const res = await fetch(`${API_BASE}/api/traffic/optimize-signals`, { method: 'POST', signal: AbortSignal.timeout(2500) });
+      const res = await fetch(`${API_BASE}/api/knowledge-base/rules`, { signal: AbortSignal.timeout(2000) });
       if (res.ok) return await res.json();
     } catch (_) {}
 
     return {
-      success: true,
-      message: 'AI Adaptive Signal Timing Applied across all corridors.',
-      overall_delay_reduction_pct: 42.8,
-      avg_wait_time_before_s: 53.4,
-      avg_wait_time_after_s: 30.6
+      engine_architecture: "Forward-Chaining Rule-Based Expert System",
+      total_rules: EMBEDDED_RULES.length,
+      categories: EMBEDDED_CATEGORIES,
+      rules: EMBEDDED_RULES.map(r => ({
+        id: r.id,
+        category: r.category,
+        title: r.title,
+        cause: r.cause,
+        required_symptoms: r.required_symptoms,
+        optional_symptoms: r.optional_symptoms || [],
+        confidence_base: r.confidence_base,
+        step_count: r.steps.length
+      }))
     };
-  },
-
-  // Analytics
-  async getAnalyticsSummary() {
-    try {
-      const res = await fetch(`${API_BASE}/api/analytics/summary`, { signal: AbortSignal.timeout(2500) });
-      if (res.ok) return await res.json();
-    } catch (_) {}
-
-    const now = Math.floor(Date.now() / 1000);
-    const time_series = [];
-    for (let i = 0; i < 20; i++) {
-      const t = now - (20 - i) * 5;
-      time_series.push({
-        time: new Date(t * 1000).toISOString().substr(11, 8),
-        speed_kmh: 58 + (i % 5) * 2.5,
-        traffic_density_pct: 50 + (i % 4) * 4.2,
-        collision_risk_score: i === 14 ? 75 : (i % 6 === 0 ? 40 : 15),
-        safety_margin_m: 35 - (i % 4) * 3,
-        detected_objects_count: 5 + (i % 6)
-      });
-    }
-
-    return {
-      uptime_seconds: 360,
-      total_frames_processed: 482,
-      total_objects_detected: 1420,
-      average_simulated_speed_kmh: 61.4,
-      average_traffic_density_pct: 54.2,
-      emergency_braking_events_count: 4,
-      collision_risk_warnings_count: 17,
-      object_class_breakdown: [
-        { name: 'Cars', count: 742 },
-        { name: 'Trucks', count: 210 },
-        { name: 'Pedestrians', count: 168 },
-        { name: 'Buses', count: 96 },
-        { name: 'Bicycles', count: 114 },
-        { name: 'Motorcycles', count: 90 }
-      ],
-      time_series
-    };
-  },
-
-  // CSV Report URL
-  getExportCsvUrl() {
-    // Generate valid CSV blob url directly so export works anywhere
-    const csvContent = [
-      '================================================================',
-      'AUTONOMOUS VEHICLE & INTELLIGENT TRANSPORTATION AI DEMO REPORT',
-      `Export Timestamp,${new Date().toISOString()}`,
-      'System Status,Operational (Demonstration Prototype)',
-      '================================================================',
-      '',
-      '--- EXECUTIVE SUMMARY METRICS ---',
-      'Metric,Value,Unit / Notes',
-      'Average Simulated Speed,61.4,km/h',
-      'Average Traffic Density,54.2,%',
-      'Total Objects Detected,1420,Perception detections',
-      'Emergency Braking Activations (AEB),4,Safety triggers',
-      'Collision Risk Warnings,17,Pre-collision alerts',
-      '',
-      '--- TIME SERIES TELEMETRY DATA ---',
-      'Time (UTC),Speed (km/h),Traffic Density (%),Collision Risk Score,Safety Margin (m),Detected Objects',
-      '12:00:00,60.5,52.0,15,35.0,6',
-      '12:00:05,62.0,54.5,15,34.0,7',
-      '12:00:10,64.2,56.0,42,31.5,8',
-      '12:00:15,61.0,53.2,15,35.2,5',
-      '',
-      'NOTICE: Academic demonstration prototype export. Not certified for road vehicle deployment.'
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    return URL.createObjectURL(blob);
   }
 };
-
-/**
- * WebSocket manager for live telemetry streaming with auto-reconnect
- */
-export class TelemetrySocket {
-  constructor(onMessage, onStatusChange) {
-    this.onMessage = onMessage;
-    this.onStatusChange = onStatusChange;
-    this.ws = null;
-    this.isConnecting = false;
-    this.reconnectTimer = null;
-    this.connect();
-  }
-
-  connect() {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.port === '5173' ? '127.0.0.1:8000' : window.location.host;
-    const wsUrl = `${protocol}//${host}/ws/telemetry`;
-
-    try {
-      this.isConnecting = true;
-      this.onStatusChange?.('connecting');
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        this.isConnecting = false;
-        this.onStatusChange?.('connected');
-        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          this.onMessage?.(msg);
-        } catch (err) {
-          console.error('Failed to parse WS telemetry message', err);
-        }
-      };
-
-      this.ws.onerror = () => {
-        this.onStatusChange?.('connected'); // Fallback mode active
-      };
-
-      this.ws.onclose = () => {
-        this.onStatusChange?.('connected');
-        this.reconnectTimer = setTimeout(() => this.connect(), 4000);
-      };
-    } catch (_) {
-      this.onStatusChange?.('connected');
-      this.reconnectTimer = setTimeout(() => this.connect(), 4000);
-    }
-  }
-
-  send(data) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-      return true;
-    }
-    return false;
-  }
-
-  close() {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-  }
-}

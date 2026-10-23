@@ -1,6 +1,6 @@
-# Real-Time AI Application: Autonomous Vehicles and Intelligent Transportation
-> **Academic & College Project Demonstration Prototype**  
-> *A full-stack intelligent transportation system featuring real-time vehicle kinematics, YOLOv8 computer vision perception, kinematic collision risk analysis, and smart city traffic signal optimization.*
+# AI-Based Computer Troubleshooting Assistant
+> **Academic & AI Laboratory Project Demonstration**  
+> *A full-stack, rule-based expert system for intelligent computer diagnostics, root-cause reasoning, and step-by-step interactive troubleshooting.*
 
 ---
 
@@ -9,21 +9,22 @@
 ```
                           ┌──────────────────────────────────────────┐
                           │         React 19 + Vite Frontend         │
-                          │   (Tailwind CSS v4 + Recharts + Leaflet) │
+                          │   (Tailwind CSS + Lucide + IT UI)        │
                           └────────────────────┬─────────────────────┘
                                                │
-                               REST APIs & WebSockets (1Hz)
+                                REST APIs (Hybrid Cloud Fallback)
                                                │
                           ┌────────────────────▼─────────────────────┐
                           │          Python FastAPI Backend          │
-                          │        (Asynchronous Event Loop)         │
+                          │     (Rule-Based Inference Engine)        │
                           └───────┬────────────┬─────────────┬───────┘
                                   │            │             │
         ┌─────────────────────────▼──┐  ┌──────▼──────┐  ┌───▼─────────────────────┐
-        │     Perception Engine      │  │ Kinematics  │  │ Intelligent Traffic Hub │
-        │  • YOLOv8 (ultralytics)    │  │ • TTC Model │  │ • Leaflet Map Engine    │
-        │  • OpenCV CV Fallback      │  │ • Friction  │  │ • Webster Split Signals │
-        │  • Road Agent Bounding Box │  │ • Auto-AEB  │  │ • Dynamic Detour Routes │
+        │   Natural Language Symptom │  │  Production │  │  Safe Hardware System   │
+        │     Extraction & N-Grams   │  │  Rules (KB) │  │    Telemetry & Probes   │
+        │  • Tokenization & Lexicon  │  │  • Antecedent│  │  • CPU, RAM, & Disk %  │
+        │  • Negation Detection      │  │  • Confidence│  │  • Ping Latency Checks │
+        │  • Synonym Normalization   │  │  • Reasoning │  │  • Safe Read-Only Mode │
         └────────────────────────────┘  └─────────────┘  └─────────────────────────┘
 ```
 
@@ -31,140 +32,108 @@
 
 ## 🌟 Key Functional Features
 
-### 1. 🏎️ Live Autonomous Telemetry Dashboard
-- Displays dynamic vehicle speed, acceleration ($m/s^2$), steering angle, battery consumption, and odometer.
-- Autonomous, Manual, and Emergency Mode toggling.
-- Real-time leading obstacle distance and relative speed metrics.
-- Multi-lane status (Left Express, Center Cruising, Right Exit).
-- Live system audit event stream with WebSocket synchronization.
-- Clearly labeled **Simulated Telemetry** banner for academic rigor.
+### 1. 🔍 Natural Language Symptom Extraction
+- Accepts user problem descriptions in everyday natural language (e.g., *"My computer is lagging and Disk usage is 100%"* or *"Wi-Fi says DNS server not found and no internet"*).
+- Intelligent n-gram tokenization and symptom lexicon mapping covering 8 core IT problem domains.
+- Contextual negation detection (distinguishes *"sound not working"* from *"sound is not an issue"*).
 
-### 2. 🎮 2D Visual Road Kinematics Simulator
-- Interactive HTML5 canvas road simulator with 3 distinct lanes and moving road stripes proportional to velocity.
-- Dynamic ego vehicle with active headlights, taillights, and sensor perception cone projection.
-- Real-time dynamic obstacle injection (Pedestrians, Lead Sedans, Heavy Trucks).
-- **Autonomous Emergency Braking (AEB)**: Decelerates at $-8.5\text{ m/s}^2$ automatically when collision risk becomes critical, coming to a standstill safely before impact.
-- Manual lane change steering controls (Steer Left, Center, Steer Right).
+### 2. 🧠 Forward-Chaining Rule-Based Expert System
+- **Knowledge Representation**: Modular production rules (`IF symptoms THEN root cause & remediation checklist`).
+- **Data-Driven Deduction**: Evaluates extracted symptoms against rule antecedents, calculates match strength percentage, and ranks candidate diagnoses.
+- **Explainable AI (XAI)**: Generates step-by-step reasoning chains explaining *why* a particular diagnosis was selected and how symptoms contributed to the conclusion.
+- **Ambiguity & Dynamic Follow-up Questions**: When confidence is between 50% and 75%, asks targeted clarifying questions to narrow down root causes.
 
-### 3. 👁️ AI Computer Vision Object Detection
-- Accepts user uploaded road camera photos and videos.
-- Powered by pretrained **YOLOv8n** (PyTorch) with automatic graceful fallback to OpenCV contour/geometry detection.
-- Detects cars, trucks, buses, pedestrians, cyclists, motorcycles, and traffic lights.
-- Generates annotated bounding box images with confidence scores and danger level classification.
-- One-click preset demo scenes (Highway Corridor & Urban Pedestrian Crossing).
+### 3. 🛠️ Tiered, Interactive Solution Checklists
+- Sequenced from safest and simplest (e.g., software toggle / process restart) to advanced (e.g., driver reinstallation, hardware reseating).
+- Interactive checkboxes with instant progress tracking.
+- Safety warnings and cautionary alerts for sensitive troubleshooting steps (BIOS, registry, power supply).
 
-### 4. ⚠️ Kinematic Collision Risk Prediction
-- Mathematical model calculating Time-to-Collision ($\text{TTC} = d / v_{\text{rel}}$).
-- Newtonian stopping distance breakdown:
-  $$\text{Stopping Distance} = (v_{\text{ego}} \times t_{\text{reaction}}) + \frac{v_{\text{ego}}^2}{2 \mu g}$$
-- Road friction coefficient selector: Dry Asphalt ($\mu=0.82$), Wet ($\mu=0.52$), Snow ($\mu=0.28$), Black Ice ($\mu=0.14$).
-- Benchmark comparison between Autonomous AI reaction ($0.25\text{s}$) vs Human driver ($1.20\text{s}$).
+### 4. 🔄 Resolution Verification & Escalation Pathways
+- Solved / Unsolved feedback loop on every diagnosis.
+- **Solved**: Provides post-resolution preventive maintenance tips (restore points, update hygiene, disk maintenance).
+- **Unresolved**: Provides secondary alternative diagnoses and a comprehensive **Technician Readiness Checklist** with diagnostic data for physical bench support.
 
-### 5. 🚦 Intelligent Traffic Management & Signal Optimization
-- Interactive Leaflet map displaying 5 smart city intersections with congestion heat indicators.
-- Real-time queue length tracking and signal phase remaining seconds.
-- Dynamic route planning comparing congested primary routes against AI recommended bypass corridors.
-- **Adaptive Signal Optimization**: Simulates Webster's queue split algorithm to reallocate green time, reducing average vehicle queue delay by up to 43%.
+### 5. 💻 Safe Hardware System Telemetry & Diagnostics
+- Integrated read-only hardware telemetry measuring real-time CPU, RAM, Disk usage, and gateway network latency.
+- Top resource-consuming processes breakdown.
+- Built-in manual diagnostic cheat sheet (shortcuts for Task Manager, Resource Monitor, Ping test, and SMART storage check).
 
-### 6. 📊 Analytics, Event Logging & CSV Export
-- Time-series Recharts graphs tracking vehicle speed, safety margin, and traffic density trends.
-- Object classification distribution bar charts.
-- Filterable system safety event audit table.
-- **Instant CSV Export**: Generates a structured demonstration report ready for submission.
-
-### 7. 🛡️ Responsible AI & Safety Framework
-- Complete explainability breakdown detailing decision transparency, edge data privacy, and sensor fusion redundancy.
-- False positive vs false negative mitigation strategies.
-- Explicit prototype safety boundary disclaimer (non-certified for physical motor vehicles).
-
-### 8. ⚙️ Automated Diagnostic Self-Test
-- Single-click automated integration test suite validating backend API health, AI inference latency, kinematic physics calculations, and WebSocket connectivity.
+### 6. 🌐 Hybrid Cloud Architecture
+- Frontend deployed on Vercel with embedded knowledge base and forward-chaining inference fallback.
+- Operates 100% reliably in zero-downtime standalone mode, while automatically connecting to the Python FastAPI backend when available.
 
 ---
 
-## 🛠️ Technology Stack
+## 📋 Supported Problem Categories
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 19, Vite, Tailwind CSS v4, Recharts, Leaflet, Lucide Icons |
-| **Backend** | Python 3.12, FastAPI, Uvicorn, WebSockets, Pydantic |
-| **AI / Vision** | Ultralytics YOLOv8n (PyTorch), OpenCV, NumPy, Pillow |
-| **Simulation** | HTML5 Canvas 2D Kinematics Engine, Webster Signal Model |
-| **Deployment** | Vercel (Frontend), Render / Railway (Backend) |
+| Category | Typical Symptoms | Representative Root Causes |
+|---|---|---|
+| **Slow Computer / Lag** | High boot time, unresponsiveness, slow apps | Startup app bloat, Background indexing thrashing |
+| **Wi-Fi & Internet** | Disconnected, DNS error, limited connectivity | IP stack corruption, DNS cache stall, DHCP lease |
+| **Audio & Sound** | No sound, muted device, crackling audio | Disabled default playback device, driver conflict |
+| **App Freezing** | Not Responding, hung processes, spinning wheel | Memory leak, corrupted app cache, CPU pegging |
+| **Boot & Black Screen** | Black screen, cursor only, POST beep codes | Explorer.exe crash, graphics driver hang, boot loop |
+| **Printer Issues** | Printer offline, print spooler queue stuck | Spooler service hung, port misconfiguration |
+| **High CPU / RAM / Disk** | 100% disk usage, fans loud, low memory | SysMain/Search loop, runaway background tasks |
+| **Software & Drivers** | BSOD crash, driver exclamation mark in DevMgr | Incompatible driver update, corrupted system files |
 
 ---
 
-## 📦 Local Installation & Setup
+## 🛠️ Local Setup and Installation
 
 ### Prerequisites
-- Node.js (v18+)
-- Python (v3.10 to v3.12 recommended)
-- Git
+- Python 3.10+ (Python 3.12 recommended)
+- Node.js 18+ and npm
 
-### 1. Clone & Enter Repository
+### 1. Backend Setup (FastAPI)
 ```bash
-git clone <repo-url>
-cd "AI project"
-```
-
-### 2. Backend Setup (FastAPI)
-```bash
+# Navigate to backend directory
 cd backend
-py -3.12 -m pip install -r requirements.txt
-py -3.12 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-*Backend will be running at `http://127.0.0.1:8000` with Swagger Docs at `http://127.0.0.1:8000/docs`.*
 
-### 3. Frontend Setup (React + Vite)
-In a new terminal:
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the FastAPI server
+uvicorn main:app --reload --port 8000
+```
+Backend API will be live at `http://127.0.0.1:8000`.  
+Interactive Swagger API documentation: `http://127.0.0.1:8000/docs`.
+
+### 2. Frontend Setup (React + Vite)
 ```bash
+# Navigate to frontend directory
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
-*Frontend will be running at `http://localhost:5173`.*
+Frontend will be live at `http://localhost:5173`.
 
 ---
 
-## 🎓 College Demonstration Script (Step-by-Step)
+## 🧪 Testing the Expert System
 
-1. **Dashboard Overview (Tab 1):** Point out the real-time speedometer gauge, lane offset, and the dynamic leading obstacle clearance meter updating every second via WebSocket.
-2. **Driving Simulator (Tab 2):**
-   - Click **"Inject Pedestrian Hazard (22m)"**.
-   - Show how the radar cone flashes red and **Autonomous Emergency Braking (AEB)** engages automatically, bringing the car to a safe stop without collision.
-   - Steer between lanes using the "Steer Left" and "Steer Right" buttons.
-3. **AI Object Detection (Tab 3):**
-   - Click **"Highway Corridor"** or upload your own road photo.
-   - Show the detected bounding boxes with confidence percentages and latency in milliseconds.
-4. **Collision Risk Physics (Tab 4):**
-   - Slide the Road Condition from **"Dry Asphalt"** to **"Black Ice"**.
-   - Point out how stopping distance doubles and risk shifts from LOW to HIGH.
-   - Toggle between **AI Autonomous (0.25s)** and **Human Driver (1.20s)** reaction times.
-5. **Intelligent Traffic (Tab 5):**
-   - Click on intersection markers on the Leaflet map to inspect queue lengths.
-   - Click **"Optimize Traffic Signals"** and highlight the 40%+ delay reduction.
-6. **Analytics & CSV Report (Tab 6):**
-   - Review the time-series charts and click **"Export Demo Report (CSV)"** to instantly download the presentation data.
-7. **Diagnostics & Responsible AI (Tabs 7 & 8):**
-   - Run the automated self-diagnostic check to show 100% PASS across all subsystems.
+### Automated Backend Tests
+```bash
+# Run backend import and rule verification
+python -c "import backend.main as m; print('Total Rules:', len(m.RULES))"
+
+# Test forward-chaining diagnosis
+python -c "import backend.main as m; res = m.diagnose_problem('My computer is very slow with 100% disk usage'); print(res['title'], '->', res['match_strength'], '%')"
+```
+
+### Production Build Verification
+```bash
+cd frontend
+npm run build
+```
 
 ---
 
-## 🌐 Production Deployment Guide
+## 🚀 Deployment
 
-### Deploying Frontend to Vercel
-1. Set the root directory in Vercel to `frontend`.
-2. Build command: `npm run build`
-3. Output directory: `dist`
-4. Environment variable:
-   - `VITE_API_URL`: `https://your-backend-service.onrender.com`
-
-### Deploying Backend to Render or Railway
-1. Set root directory to `backend`.
-2. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-3. Python version: `3.12`
-
----
-
-## ⚖️ Safety & Legal Notice
-*This software is an educational prototype developed for computer science academic evaluation and demonstration purposes. It does not interface with physical automotive drive-by-wire or CAN-bus systems.*
+- **Frontend**: Deployed to Vercel via Vite static export.
+- **Backend**: Can be hosted on Render, Railway, AWS ECS, or local server.
